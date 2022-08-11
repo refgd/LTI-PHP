@@ -484,7 +484,7 @@ class Platform
     public static function fromConsumerKey($key = null, $dataConnector = null, $autoEnable = false)
     {
         $platform = new static($dataConnector);
-        $platform->key = $key;
+        $platform->setKey($key);
         if (!empty($dataConnector)) {
             $ok = $dataConnector->loadPlatform($platform);
             if ($ok && $autoEnable) {

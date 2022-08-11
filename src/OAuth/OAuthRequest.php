@@ -35,34 +35,45 @@ class OAuthRequest
     public static function from_request($http_method = null, $http_url = null, $parameters = null)
     {
         if (!$http_url) {
+            $_scheme = 'https';
+            $_host = $_SERVER['SERVER_NAME'];
+            $_port = ':443';
             if ((isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && ($_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) ||
                 (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && ($_SERVER['HTTP_X_FORWARDED_SSL'] === 'on')) ||
                 (isset($_SERVER['HTTP_X_URL_SCHEME']) && ($_SERVER['HTTP_X_URL_SCHEME'] === 'https'))) {
-                $_SERVER['HTTPS'] = 'on';
-                $_SERVER['SERVER_PORT'] = 443;
-            } elseif (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-                $_SERVER['HTTPS'] = 'off';
-                $_SERVER['SERVER_PORT'] = 80;
-            } elseif (!isset($_SERVER['HTTPS'])) {
-                $_SERVER['HTTPS'] = 'off';
+                $_scheme = 'https';
+                $_port = ':443';
+            } elseif (!isset($_SERVER['HTTPS']) || isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+                $_scheme = 'http';
+                $_port = ':80';
             }
+
             if (!empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
                 $forwardedHosts = str_replace(' ', ',', trim($_SERVER['HTTP_X_FORWARDED_HOST']));  // Use first if multiple hosts listed
                 $hosts = explode(',', $forwardedHosts);
                 if (!empty($hosts[0])) {
                     $host = explode(':', $hosts[0], 2);
-                    $_SERVER['SERVER_NAME'] = $host[0];
+                    $_host = $host[0];
                     if (count($host) > 1) {
-                        $_SERVER['SERVER_PORT'] = $host[1];
+                        $_port = ':'.$host[1];
                     } elseif ($_SERVER['HTTPS'] === 'on') {
-                        $_SERVER['SERVER_PORT'] = 443;
+                        $_port = ':443';
                     } else {
-                        $_SERVER['SERVER_PORT'] = 80;
+                        $_port = ':80';
                     }
                 }
             }
-            $scheme = ($_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-            $http_url = "{$scheme}://{$_SERVER['SERVER_NAME']}:{$_SERVER['SERVER_PORT']}{$_SERVER['REQUEST_URI']}";
+            if (!empty($_SERVER['HTTP_HOST'])) {
+                $_host = $_SERVER['HTTP_HOST'];
+            }
+            
+            if( ($_scheme === 'https' && $_port === ':443')
+                || ($_scheme === 'http' && $_port === ':80')
+            ){
+                $_port === '';
+            }
+            
+            $http_url = "{$_scheme}://{$_host}{$_port}{$_SERVER['REQUEST_URI']}";
         }
         $http_method = ($http_method) ? $http_method : $_SERVER['REQUEST_METHOD'];
 

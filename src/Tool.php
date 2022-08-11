@@ -970,17 +970,20 @@ class Tool
                 $domain = substr($domain, 0, $pos);
             }
         }
-        $this->platform = new Platform($this->dataConnector);
+        
+        $this->platform = Platform::fromPlatformId($platformConfig['issuer'], $registrationConfig['client_id'], $registrationConfig['https://purl.imsglobal.org/spec/lti-tool-configuration']['deployment_id'], $this->dataConnector);
         $this->platform->name = $domain;
         $this->platform->ltiVersion = Util::LTI_VERSION1P3;
         $this->platform->signatureMethod = reset($platformConfig['id_token_signing_alg_values_supported']);
-        $this->platform->platformId = $platformConfig['issuer'];
-        $this->platform->clientId = $registrationConfig['client_id'];
-        $this->platform->deploymentId = $registrationConfig['https://purl.imsglobal.org/spec/lti-tool-configuration']['deployment_id'];
         $this->platform->authenticationUrl = $platformConfig['authorization_endpoint'];
         $this->platform->accessTokenUrl = $platformConfig['token_endpoint'];
         $this->platform->jku = $platformConfig['jwks_uri'];
+
         if ($doSave) {
+            // Auto enable if it is new platform
+            if (empty($this->platform->getRecordId())) {
+                $this->platform->enabled = true;
+            }
             $this->ok = $this->platform->save();
             if (!$this->ok) {
                 $this->reason = 'Sorry, an error occurred when saving the platform details.';
